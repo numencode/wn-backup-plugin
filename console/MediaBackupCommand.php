@@ -7,7 +7,7 @@ class MediaBackupCommand extends Command
 {
     protected $signature = 'media:backup
         {cloudName : Cloud storage where the media files are uploaded}
-        {folder?   : The name of the folder on the cloud storage where the media files are stored}';
+        {folder?   : The name of the folder on the cloud storage where the media files are stored (default: storage)}';
 
     protected $description = 'Upload all the media files to the cloud storage.';
 
@@ -43,6 +43,6 @@ class MediaBackupCommand extends Command
 
     protected function resolveFolderName($folderName = null)
     {
-        return $folderName ? rtrim($folderName, '/') . '/' : null;
+        return $folderName ? rtrim($folderName, '/') . '/' : 'storage/';
     }
 }

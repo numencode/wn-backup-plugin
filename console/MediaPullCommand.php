@@ -25,8 +25,10 @@ class MediaPullCommand extends RemoteCommand
         }
 
         $cloud = $this->argument('cloudName');
-        $folder = $this->argument('folder');
-        $cloudStorageFolder = $this->resolveFolderName($folder);
+        $folder = $this->resolveFolderName($this->argument('folder'));
+
+        $this->info(PHP_EOL . "Now connected to the {$this->argument('server')} environment." . PHP_EOL);
+        $this->line('Executing media:backup command...');
 
         $result = $this->sshRunAndPrint([$this->sudo . 'php artisan media:backup ' . $cloud . ' ' . $folder]);
 
@@ -39,18 +41,20 @@ class MediaPullCommand extends RemoteCommand
         $localStorage = Storage::disk('local');
         $cloudStorage = Storage::disk($cloud);
 
-        $files = array_filter($cloudStorage->allFiles(), function ($file) {
-            return starts_with($file, 'storage/');
+        $files = array_filter($cloudStorage->allFiles(), function ($file) use ($folder) {
+            return starts_with($file, $folder);
         });
 
-        $this->line(PHP_EOL . 'Downloading ' . count($files) . ' files from the cloud storage...');
+        $this->info(PHP_EOL . 'Switched back to local environment.' . PHP_EOL);
+
+        $this->line('Downloading ' . count($files) . ' files from the cloud storage...' . PHP_EOL);
 
         $bar = $this->output->createProgressBar(count($files));
 
         foreach ($files as $file) {
             $bar->advance();
 
-            $localStorageFile = ltrim($file, $cloudStorageFolder);
+            $localStorageFile = ltrim($file, $folder);
 
             if ($localStorage->exists($localStorageFile)) {
                 if ($localStorage->size($localStorageFile) == $cloudStorage->size($file)) {
@@ -69,6 +73,6 @@ class MediaPullCommand extends RemoteCommand
 
     protected function resolveFolderName($folderName = null)
     {
-        return $folderName ? rtrim($folderName, '/') . '/' : '/';
+        return $folderName ? rtrim($folderName, '/') . '/' : 'storage/';
     }
 }

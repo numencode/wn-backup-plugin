@@ -12,7 +12,7 @@ class ProjectPullCommand extends RemoteCommand
     public function handle()
     {
         if (!$this->sshConnect()) {
-            return false;
+            return $this->error('An error occurred while connecting with SSH.');
         }
 
         $this->line('');

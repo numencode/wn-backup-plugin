@@ -5,10 +5,10 @@ use Illuminate\Support\Facades\Storage;
 class MediaPullCommand extends RemoteCommand
 {
     protected $signature = 'media:pull
-        {server    : The name of the remote server}
-        {cloudName : Cloud storage where the media files are uploaded}
-        {folder?   : The name of the folder on the cloud storage where the media files are stored (default: storage)}
-        {--sudo    : Force super user (sudo) on the remote server}';
+        {server     : The name of the remote server}
+        {cloudName  : Cloud storage where the media files are uploaded}
+        {folder?    : The name of the folder on the cloud storage where the media files are stored (default: storage)}
+        {--x|--sudo : Force super user (sudo) on the remote server}';
 
     protected $description = 'Run media:backup command on the remote server and then download all the media files from the cloud storage to the local storage.';
 
@@ -17,22 +17,21 @@ class MediaPullCommand extends RemoteCommand
     public function handle()
     {
         if (!$this->sshConnect()) {
-            return;
+            return $this->error('An error occurred while connecting with SSH.');
         }
 
         if ($this->option('sudo')) {
             $this->sudo = 'sudo ';
         }
 
-        $cloud = $this->argument('cloud');
+        $cloud = $this->argument('cloudName');
         $folder = $this->argument('folder');
-
-        $cloudStorageFolder = ($folder ?: 'storage') . '/';
+        $cloudStorageFolder = $this->resolveFolderName($folder);
 
         $result = $this->sshRunAndPrint([$this->sudo . 'php artisan media:backup ' . $cloud . ' ' . $folder]);
 
         if (!str_contains($result, 'files successfully uploaded')) {
-            $this->error('An error occurred while uploading files to the cloud storage.');
+            $this->error(PHP_EOL . 'An error occurred while uploading files to the cloud storage.');
 
             return false;
         }
@@ -44,8 +43,7 @@ class MediaPullCommand extends RemoteCommand
             return starts_with($file, 'storage/');
         });
 
-        $this->line('');
-        $this->question('Downloading ' . count($files) . ' files from the cloud storage...');
+        $this->line(PHP_EOL . 'Downloading ' . count($files) . ' files from the cloud storage...');
 
         $bar = $this->output->createProgressBar(count($files));
 
@@ -65,8 +63,12 @@ class MediaPullCommand extends RemoteCommand
 
         $bar->finish();
 
-        $this->line('');
-
+        $this->line(PHP_EOL);
         $this->alert('All files successfully downloaded to the local storage.');
+    }
+
+    protected function resolveFolderName($folderName = null)
+    {
+        return $folderName ? rtrim($folderName, '/') . '/' : '/';
     }
 }

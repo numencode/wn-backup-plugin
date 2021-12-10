@@ -80,14 +80,19 @@ cloud storage for media files, database synchronization and more.
 
 ## Commands
 
-- [Db:backup](#dbbackup)
-- [Db:pull](#dbpull)
-- [Media:backup](#mediabackup)
-- [Media:pull](#mediapull)
+| Command                           | Description                                                                                     |
+| :-------------------------------- | :---------------------------------------------------------------------------------------------- |
+| [db:backup](#db-backup)           | Create a database dump file and upload it to the cloud storage                                  |
+| [db:pull](#db-pull)               | Transfer changes from the production database to the local/dev database                         |
+| [media:backup](#media-backup)     | Upload all the media files to the cloud storage                                                 |
+| [media:pull](#media-pull)         | Transfer all the media files from production to the local/dev environment via the cloud storage |
+| [project:backup](#project-backup) | Create a compressed archive of all the project files and upload it to the cloud storage         |
+| [project:pull](#project-pull)     | Transfer file changes from the production to the local/dev environment via Git                  |
+| [project:commit](#project-pull)   | Add, commit and push file changes to Git                                                        |
 
 ---
 
-<a name="dbbackup"></a>
+<a name="db-backup"></a>
 ### Db:backup
 
 The command creates a compressed SQL dump file of the project's default database. The name of the archive is the
@@ -120,7 +125,7 @@ $schedule->command('db:backup dropbox --folder=database')->dailyAt('02:00');
 
 ---
 
-<a name="dbpull"></a>
+<a name="db-pull"></a>
 ### Db:pull
 
 The command connects to a remote server with SSH, creates a database dump file, transfers it to the current working
@@ -147,7 +152,7 @@ php artisan db:pull production --no-import
 
 ---
 
-<a name="mediabackup"></a>
+<a name="media-backup"></a>
 ### Media:backup
 
 The command uploads all the media files from the folder `storage/app/` to the cloud storage. All `.gitignore` files
@@ -167,17 +172,17 @@ The command supports one optional argument:
 ```bash
 php artisan media:backup cloudName folder
 ```
-- `folder` is the name of the folder on the cloud storage where the media files are uploaded
+- `folder` is the name of the folder on the cloud storage where the media files are uploaded, the default is `storage/`
 
 #### Usage in Scheduler
 
-```bash
-$schedule->command('media:backup cloudName --folder=media')->dailyAt('03:00');
+```
+$schedule->command('media:backup cloudName')->dailyAt('03:00');
 ```
 
 ---
 
-<a name="mediapull"></a>
+<a name="media-pull"></a>
 ### Media:pull
 
 The command connects to a remote server with SSH and executes `php artisan media:backup cloudName` in order to upload
@@ -199,20 +204,21 @@ The command supports some optional arguments:
 ```bash
 php artisan media:pull production cloudName folder --sudo
 ```
-- `folder` is the name of the folder where the files are uploaded (on the cloud storage)
+- `folder` is the name of the folder on the cloud storage where the media files are uploaded, the default is `storage/`
 - `--sudo` or `-x` forces superuser (sudo) on the remote server
 
 ---
 
+<a name="project-backup"></a>
 ### Project:backup
 
-The command creates a compressed tarball file, which is an archive of all project files in the current directory.
-The name of the archive is the current timestamp with the extension `.tar.gz`. The timestamp format can be
-explicitly specified, although the default format is `Y-m-d_H-i-s`. The command can also upload the file
-to the cloud storage, if an argument is provided. You can exclude explicitly selected folders from the archive.
+The command creates a compressed tarball file, which is an archive of all the project files in the current directory.
+The name of the archive is the current timestamp with the extension of `.tar.gz`. The timestamp format can be
+explicitly specified, although the default format is `Y-m-d_H-i-s`. The command can also upload the file to the
+cloud storage, if an argument is provided. You can exclude explicitly selected folders from the archive.
 
-This command is useful if it's set in the Scheduler to create a complete backup once a week
-and upload it onto the cloud storage, for example.
+This command is useful if it's set in the Scheduler to create a complete backup once a week and upload it to the
+cloud storage.
 
 #### Usage in CLI
 
@@ -222,26 +228,29 @@ php artisan project:backup
 
 The command supports some optional arguments:
 ```bash
-php artisan project:backup cloudName --folder=_files --timestamp=d-m-Y --exclude=_files
+php artisan project:backup cloudName --folder=files --timestamp=d-m-Y --exclude=files --no-delete
 ```
-- `cloudName` is a cloud storage where the archive is uploaded (defined in `/config/filesystems.php`)
-- `--folder` is the name of the folder to which the archive is stored (local and/or on the cloud storage)
+- `cloudName` is the cloud storage where the archive is uploaded (defined in `/config/filesystems.php`)
+- `--folder` is the name of the folder where the archive is stored (local and/or on the cloud storage)
 - `--timestamp` is a date format used for naming the archive file (default: `Y-m-d_H-i-s`)
 - `--exclude` is a comma-separated list of the folders, to be excluded from the archive (`/vendor` is excluded by default)
 - `--no-delete` or `-d` prevents deleting the local archive file after it's uploaded to the cloud storage
 
 #### Usage in Scheduler
 
-```bash
-$schedule->command('project:backup cloudName --folder=files')->weeklyOn(1, '01:00');
+```
+$schedule->command('project:backup dropbox --folder=files')->weeklyOn(1, '01:00');
 ```
 
+---
+
+<a name="project-pull"></a>
 ### Project:pull
 
-The command adds and commits changes on the production environment, pushes them to the git repository
-and then fetches and merges them on a local/dev environment.
+The command adds and commits changes on the production environment, pushes them to the git repository and then
+fetches and merges them on the local/dev environment.
 
-This command is very useful for quickly retrieving content changes that have been made in the production environment.
+This command is very useful for quickly retrieving content changes that have been made on the production environment.
 Since Winter CMS stores pages, layouts, contents, etc. in static `*.htm` files, the best way to fetch these changes
 is by pushing them to the git repository and merging them locally.
 
@@ -282,6 +291,9 @@ php artisan project:deploy production --fast --composer --migrate --sudo
 - where `--migrate` or `-m` is an optional argument which runs migrations (`php artisan winter:up`)
 - where `--sudo` or `-x` is an optional argument which forces the superuser (`sudo`) usage
 
+---
+
+<a name="project-commit"></a>
 ### Project:commit
 
 The command adds and commits all the changes to the git repository with a default message of `Server changes`.
@@ -299,9 +311,11 @@ The commit message argument is optional, and it defaults to `"Server changes"` m
 
 #### Usage in Scheduler
 
-```bash
+```
 $schedule->command('project:commit')->daily()->at('01:00');
 ```
+
+---
 
 ## Recommended Scheduler settings
 
@@ -311,10 +325,10 @@ Here are the recommended entries for the Scheduler:
 - create a backup of the database every day at 3 am
 - commit changes from the production environment every day at 4 am
 
-```bash
-$schedule->command('project:backup cloudName --folder=files')->weeklyOn(1, '01:00');
-$schedule->command('media:backup cloudName')->daily()->at('02:00');
-$schedule->command('db:backup cloudName')->daily()->at('03:00');
+```
+$schedule->command('project:backup dropbox --folder=files')->weeklyOn(1, '01:00');
+$schedule->command('media:backup dropbox')->daily()->at('02:00');
+$schedule->command('db:backup dropbox')->daily()->at('03:00');
 $schedule->command('project:commit')->daily()->at('04:00');
 ```
 

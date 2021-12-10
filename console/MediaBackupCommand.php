@@ -19,7 +19,7 @@ class MediaBackupCommand extends Command
             return basename($file) != '.gitignore' && !stristr($file, '/thumb/');
         });
 
-        $this->line(PHP_EOL . 'Uploading ' . count($files) . ' files to the cloud storage...');
+        $this->line(PHP_EOL . 'Uploading ' . count($files) . ' files to the cloud storage...' . PHP_EOL);
 
         $bar = $this->output->createProgressBar(count($files));
 
